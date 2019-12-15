@@ -4,24 +4,74 @@ extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
 %}
-%token TYPE STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN
+%token TYPE STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR
 %start start
+%left AND
+%left OR
+%left PLUS MINUS
+%left MUL DIV
+%left NOT
+//problems to solve  -3 shift/reduce in block 
+//                   -1 shift/reduce in start
 %%
 start : progr {printf("Accepted!");}
       ;
 
-progr : classes declaratii main 
-      | declaratii main 
+progr : classes declaratii main
+      | declaratii main
       | classes main
-      | main
+      | main 
       ;
 
 bgn_main : TYPE MAIN args
          ;
 main : bgn_main BOPN blocks BCLS
+     ;
 
-blocks :
+blocks : block
+       | BOPN block BCLS
+       | blocks block
        ;
+block : IF POPN condition PCLS statement ENDIF
+      | IF POPN condition PCLS BOPN statements BCLS ENDIF
+      | IF POPN condition PCLS statements ELSE statement ENDIF
+      | IF POPN condition PCLS BOPN statements BCLS ELSE statement ENDIF
+      | IF POPN condition PCLS BOPN statements BCLS ELSE BOPN statements BCLS ENDIF
+      | IF POPN condition PCLS statement ELSE BOPN statements BCLS ENDIF
+      | FOR POPN statement SEMIC condition SEMIC statement PCLS statement  ENDFOR
+      | FOR POPN statement SEMIC condition SEMIC statement PCLS BOPN statements BCLS ENDFOR
+      | WHILE POPN condition PCLS statement ENDWHILE
+      | WHILE POPN condition PCLS BOPN statements BCLS ENDWHILE
+      | declaratii  
+      | statement
+      ;
+statements : statement
+           | statements statement
+statement : expr
+          ;
+expr : expr PLUS expr
+     | expr MINUS expr
+     | expr MUL expr
+     | expr DIV expr 
+     | POPN expr PCLS
+     | NUMBER
+     ;
+condition : op 
+          | op LO op
+          | op GT op
+          | op LOEQ op
+          | op GTEQ op
+          | op EQEQ op
+          | op NOTEQ op
+          | NOT op
+          | condition AND condition 
+          | condition OR condition
+          | POPN condition PCLS
+          ;
+op : ID
+   | NUMBER 
+   ;
+
 args : POPN PCLS 
      | POPN parameters PCLS
      ;  
@@ -49,6 +99,7 @@ declaratie : TYPE ID SEMIC
            | STRINGTYPE ID SEMIC 
            | STRINGTYPE ID EQ STRING SEMIC 
            ;
+
 
 %%
 int yyerror(char * s){
