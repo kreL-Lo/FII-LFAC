@@ -11,12 +11,15 @@ extern int yylineno;
 %left PLUS MINUS
 %left MUL DIV
 %left NOT
-//problems
+//problems: 
 %%
 start : progr {printf("Accepted!");}
       ;
 
-progr : main
+progr : classes declaratii main
+      | declaratii main
+      | classes main
+      | main
       ;
 
 bgn_main : TYPE MAIN args
@@ -34,12 +37,16 @@ block : IF POPN condition PCLS statement ENDIF
       | IF POPN condition PCLS BOPN statements BCLS ELSE statement ENDIF
       | IF POPN condition PCLS BOPN statements BCLS ELSE BOPN statements BCLS ENDIF
       | IF POPN condition PCLS statement ELSE BOPN statements BCLS ENDIF
+      | FOR POPN statement SEMIC condition SEMIC statement PCLS statement  ENDFOR
+      | FOR POPN statement SEMIC condition SEMIC statement PCLS BOPN statements BCLS ENDFOR
+      | WHILE POPN condition PCLS statement ENDWHILE
+      | WHILE POPN condition PCLS BOPN statements BCLS ENDWHILE
       | declaratie
       | statement
       ;
 statements : statement SEMIC
            | statements statement SEMIC
-statement : expr 
+statement : expr SEMIC
           ;
 expr : expr PLUS expr
      | expr MINUS expr
