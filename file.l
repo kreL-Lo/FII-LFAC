@@ -4,7 +4,7 @@
 %}
 %%
 "int"|"float"|"char"|"bool" {return TYPE;}
-"str" {return STRINGTYPE;}
+"string" {return STRINGTYPE;}
 "class" {return CLASS;}
 "{" {return BOP;}
 "}" {return BCLS; }
