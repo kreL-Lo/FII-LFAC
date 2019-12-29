@@ -1,8 +1,45 @@
 %{
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
+
+
+
+struct var{
+    int value;
+    char * type;
+    char * name;
+    int constant;
+    int 
+    
+};
+struct var vars[500];
+int k =0 ;
+void declare_with_init(char * type, char * name,int value, int constant){
+
+    vars[k].type = strdup(type);
+    vars[k].name = strdup(name);
+    vars[k].value = value;
+    vars[k].constant= constant;
+    ++k;
+}
+int getPosition(char * name){
+    for(int i=0;i<k;i++){
+        if(strcmp(vars[i].name,name)==0){
+            return i;
+        }
+    }
+    return -1;
+}
+int getValue(char * name){
+    int position = getPosition(name);
+    return vars[position].value;
+}
+
 %}
 %token FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR RETURN
 %start start
@@ -11,9 +48,15 @@ extern int yylineno;
 %left PLUS MINUS
 %left MUL DIV
 %left NOT
-
+%union
+{
+    int num;
+    char* str;
+}
+%type <num> expr NUMBER function_call
+%type <str> ID FLOAT INT BOOL CHAR STRING tip
 %%
-start : eva progr {printf("Accepted!");}
+start : progr {printf("Accepted!");}
       ;
 
 progr : main
@@ -21,14 +64,12 @@ progr : main
 functii : functii functie
         | functie
         ;
-eva : FUNCTION EVAL POPN INT ID PCLS BOPN block BCLS  
-    |  FUNCTION EVAL POPN INT ID PCLS BOPN BCLS  
-    ;
+
 functie : FUNCTION tip FUNC_ID args BOPN blocks BCLS
         | FUNCTION tip FUNC_ID args BOPN BCLS
         ;
-tip : INT 
-    | FLOAT
+tip : INT {$$=$1;}
+    | FLOAT {$$=$1;}
     ;
 
 bgn_main :FUNCTION INT MAIN args
@@ -41,7 +82,10 @@ blocks : block
        | blocks block
        ;
 block : statements
+      | function_call
       ;
+function_call : EVAL POPN expr PCLS SEMIC {$$=$3; printf("number is %d\n",$$);}
+              ;
 
 if_stmt :  IF POPN condition PCLS BOPN blocks BCLS ENDIF
       | IF POPN condition PCLS BOPN blocks BCLS ELSE BOPN blocks BCLS ENDIF
@@ -66,15 +110,16 @@ statements : expression_stmt
 return_stmt : RETURN SEMIC
             ;
  
-expression_stmt : ID EQ expr SEMIC
+expression_stmt : declaratie
                 ;
 
-expr : expr PLUS expr
-     | expr MINUS expr
-     | expr MUL expr
-     | expr DIV expr 
-     | POPN expr PCLS
-     | NUMBER
+expr : expr PLUS expr {$$ = $1 + $3;}
+     | expr MINUS expr {$$ = $1-$3;}
+     | expr MUL expr {$$ = $1*$3;}
+     | expr DIV expr {$$= $1/$3;}
+     | POPN expr PCLS {$$=$2;}
+     | NUMBER {$$=$1;}
+     | ID {$$=getValue($1);}
      ;
 condition : op 
           | op LO op
@@ -121,17 +166,10 @@ declaratii : declaratie
            | declaratii declaratie 
            ;
 
-declaratie :tip ID SEMIC
-           | CONST INT ID SEMIC
-           | INT ID EQ NUMBER
-           | CONST ID EQ NUMBER
-           | CONST tip ID SEMIC 
-           | tip ID EQ NUMBER SEMIC
-           | CONST tip ID EQ NUMBER SEMIC
-           | STRINGTYPE ID SEMIC 
-           | STRINGTYPE ID EQ STRING SEMIC 
-           | VECTOR INT ID ':' '[' list ']' SEMIC
+declaratie :tip ID SEMIC {}
+           | tip ID EQ NUMBER SEMIC {declare_with_init($1,$2,$4);}
            ;
+           
 list : list COMMA NUMBER
      | NUMBER
      ;
