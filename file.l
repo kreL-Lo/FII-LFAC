@@ -3,10 +3,16 @@
 #include "y.tab.h"
 %}
 %%
-"int"|"float"|"char"|"bool" {return TYPE;}
+"float" {return FLOAT;}
+"char"  {return CHAR; }
+"bool" {return BOOL;}
+"int" { return INT;}
+"vector" {return VECTOR;}
 "const" {return CONST;}
 "string" {return STRINGTYPE;}
 "class" {return CLASS;}
+"call" {return CALL;}
+"int @eval" {return EVAL;}
 "main" { return MAIN;}
 "if" {return IF;}
 "end_if" {return ENDIF;}
@@ -15,6 +21,9 @@
 "else" {return ELSE;}
 "while" {return WHILE;}
 "for" {return FOR;}
+"function" {return FUNCTION;}
+"++" {return INCR;}
+"--" {return DECR;}
 "&&" {return AND;}
 "||" {return OR;}
 "==" {return EQEQ;}
@@ -38,6 +47,7 @@
 \"[_a-zA-Z0-9 ]*\" {return STRING;}
 [_a-zA-Z][_a-zA-Z0-9]* {return ID;}
 [0-9]+ {return NUMBER;}
+@[_a-zA-Z][_a-zA-Z0-9]* {return FUNC_ID;}
 [ \t] ;
 \n {yylineno++;}
 . {return yytext[0];}
