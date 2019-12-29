@@ -3,17 +3,17 @@
 #include "y.tab.h"
 %}
 %%
-"float" {return FLOAT;}
-"char"  {return CHAR; }
-"bool" {return BOOL;}
-"int" { return INT;}
+"float" {yylval.str=strdup(yytext); return FLOAT;}
+"char"  {yylval.str=strdup(yytext); return CHAR; }
+"bool" {yylval.str=strdup(yytext);return BOOL;}
+"int" {yylval.str=strdup(yytext); ;return INT;}
+"string" {yylval.str=strdup(yytext); return STRINGTYPE;}
 "vector" {return VECTOR;}
 "const" {return CONST;}
-"string" {return STRINGTYPE;}
 "return" {return RETURN;}
 "class" {return CLASS;}
 "call" {return CALL;}
-"int @eval" {return EVAL;}
+"@eval" {return EVAL;}
 "main" { return MAIN;}
 "if" {return IF;}
 "end_if" {return ENDIF;}
@@ -45,9 +45,9 @@
 "-" {return MINUS;}
 "*" {return MUL;}
 "/" {return DIV;}
-\"[_a-zA-Z0-9 ]*\" {return STRING;}
-[_a-zA-Z][_a-zA-Z0-9]* {return ID;}
-[0-9]+ {return NUMBER;}
+\"[_a-zA-Z0-9 ]*\" {yylval.str=strdup(yytext);return STRING;}
+[_a-zA-Z][_a-zA-Z0-9]* {yylval.str=strdup(yytext);return ID;}
+[0-9]+ {yylval.num=atoi(yytext);return NUMBER;}
 @[_a-zA-Z][_a-zA-Z0-9]* {return FUNC_ID;}
 [ \t] ;
 \n {yylineno++;}
