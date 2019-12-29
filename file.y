@@ -4,50 +4,72 @@ extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
 %}
-%token TYPE STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR
+%token FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR TEST
 %start start
 %left AND
 %left OR
 %left PLUS MINUS
 %left MUL DIV
 %left NOT
-//problems: 
+
 %%
-start : progr {printf("Accepted!");}
+start : eva progr {printf("Accepted!");}
       ;
 
-progr : classes declaratii main
+progr : functii classes declaratii main
+      | functii declaratii main
       | declaratii main
       | classes main
+      | functii classes main
+      | functii main
+      | classes declaratii main
       | main
       ;
+functii : functii functie
+        | functie
+        ;
+eva : FUNCTION EVAL POPN INT ID PCLS BOPN block BCLS  
+    |  FUNCTION EVAL POPN INT ID PCLS BOPN BCLS  
+    ;
+functie : FUNCTION tip FUNC_ID args BOPN blocks BCLS
+        | FUNCTION tip FUNC_ID args BOPN  BCLS
+        ;
+tip : INT 
+    | FLOAT
+    ;
 
-bgn_main : TYPE MAIN args
+bgn_main :FUNCTION INT MAIN args
          ;
 main : bgn_main BOPN blocks BCLS
+     | bgn_main BOPN BCLS
      ;
 
 blocks : block
-       | BOPN block BCLS
-       | blocks block
+       | blocks block   
        ;
-block : IF POPN condition PCLS statement ENDIF
-      | IF POPN condition PCLS BOPN statements BCLS ENDIF
-      | IF POPN condition PCLS statements ELSE statement ENDIF
-      | IF POPN condition PCLS BOPN statements BCLS ELSE statement ENDIF
-      | IF POPN condition PCLS BOPN statements BCLS ELSE BOPN statements BCLS ENDIF
-      | IF POPN condition PCLS statement ELSE BOPN statements BCLS ENDIF
-      | FOR POPN statement SEMIC condition SEMIC statement PCLS statement  ENDFOR
+block : IF POPN condition PCLS BOPN statements BCLS 
+      | IF POPN condition PCLS BOPN statements BCLS ELSE BOPN statements BCLS 
       | FOR POPN statement SEMIC condition SEMIC statement PCLS BOPN statements BCLS ENDFOR
-      | WHILE POPN condition PCLS statement ENDWHILE
       | WHILE POPN condition PCLS BOPN statements BCLS ENDWHILE
       | declaratie
-      | statement
-      ;
+      | statement SEMIC
+      | call_parm
+      ; 
+
+call_parm : CALL FUNC_ID args_call
+          ;
+
 statements : statement SEMIC
            | statements statement SEMIC
-statement : expr SEMIC
-          ;
+           ;
+statement : ID EQ expr 
+          | INCR ID 
+          | DECR ID 
+          | ID INCR 
+          | ID DECR 
+          | block
+          ; 
+
 expr : expr PLUS expr
      | expr MINUS expr
      | expr MUL expr
@@ -70,6 +92,15 @@ condition : op
 op : ID
    | NUMBER 
    ;
+args_call : POPN PCLS
+          | POPN parameters_call PCLS
+          ;
+
+parameters_call : param_call COMMA  parameters_call
+                | param_call
+                ;
+param_call : ID
+           ;
 
 args : POPN PCLS 
      | POPN parameters PCLS
@@ -77,27 +108,34 @@ args : POPN PCLS
 parameters : param COMMA parameters
            | param 
            ;
-param : TYPE ID 
+param : tip ID 
       ; 
 
 classes : class 
         | classes class
         ;
 class : CLASS ID BOPN declaratii BCLS  SEMIC 
-      | CLASS ID BOPN BCLS  SEMIC 
+      | CLASS ID BOPN BCLS SEMIC 
       ;
 
 declaratii : declaratie 
            | declaratii declaratie 
            ;
 
-declaratie : TYPE ID SEMIC
-           | CONST TYPE ID SEMIC 
-           | TYPE ID EQ NUMBER SEMIC
-           | CONST TYPE ID EQ NUMBER SEMIC
+declaratie :tip ID SEMIC
+           | CONST INT ID SEMIC
+           | INT ID EQ NUMBER
+           | CONST ID EQ NUMBER
+           | CONST tip ID SEMIC 
+           | tip ID EQ NUMBER SEMIC
+           | CONST tip ID EQ NUMBER SEMIC
            | STRINGTYPE ID SEMIC 
            | STRINGTYPE ID EQ STRING SEMIC 
+           | VECTOR INT ID ':' '[' list ']' SEMIC
            ;
+list : list COMMA NUMBER
+     | NUMBER
+     ;
 
 
 %%
