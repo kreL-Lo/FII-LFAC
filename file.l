@@ -10,6 +10,7 @@
 "vector" {return VECTOR;}
 "const" {return CONST;}
 "string" {return STRINGTYPE;}
+"return" {return RETURN;}
 "class" {return CLASS;}
 "call" {return CALL;}
 "int @eval" {return EVAL;}
