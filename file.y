@@ -4,7 +4,7 @@ extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
 %}
-%token FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR TEST
+%token FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR RETURN
 %start start
 %left AND
 %left OR
@@ -16,14 +16,7 @@ extern int yylineno;
 start : eva progr {printf("Accepted!");}
       ;
 
-progr : functii classes declaratii main
-      | functii declaratii main
-      | declaratii main
-      | classes main
-      | functii classes main
-      | functii main
-      | classes declaratii main
-      | main
+progr : main
       ;
 functii : functii functie
         | functie
@@ -32,7 +25,7 @@ eva : FUNCTION EVAL POPN INT ID PCLS BOPN block BCLS
     |  FUNCTION EVAL POPN INT ID PCLS BOPN BCLS  
     ;
 functie : FUNCTION tip FUNC_ID args BOPN blocks BCLS
-        | FUNCTION tip FUNC_ID args BOPN  BCLS
+        | FUNCTION tip FUNC_ID args BOPN BCLS
         ;
 tip : INT 
     | FLOAT
@@ -45,30 +38,36 @@ main : bgn_main BOPN blocks BCLS
      ;
 
 blocks : block
-       | blocks block   
+       | blocks block
        ;
-block : IF POPN condition PCLS BOPN statements BCLS 
-      | IF POPN condition PCLS BOPN statements BCLS ELSE BOPN statements BCLS 
-      | FOR POPN statement SEMIC condition SEMIC statement PCLS BOPN statements BCLS ENDFOR
-      | WHILE POPN condition PCLS BOPN statements BCLS ENDWHILE
-      | declaratie
-      | statement SEMIC
-      | call_parm
-      ; 
+block : statements
+      ;
+
+if_stmt :  IF POPN condition PCLS BOPN blocks BCLS ENDIF
+      | IF POPN condition PCLS BOPN blocks BCLS ELSE BOPN blocks BCLS ENDIF
+      | IF POPN condition PCLS BOPN BCLS ELSE BOPN blocks BCLS ENDIF
+      ;
+
+for_stmt : FOR POPN statements SEMIC condition SEMIC blocks PCLS BOPN statements BCLS ENDFOR
+         ;
+
+while_stmt : WHILE POPN condition PCLS BOPN blocks BCLS ENDWHILE
+           ;
 
 call_parm : CALL FUNC_ID args_call
           ;
 
-statements : statement SEMIC
-           | statements statement SEMIC
-           ;
-statement : ID EQ expr 
-          | INCR ID 
-          | DECR ID 
-          | ID INCR 
-          | ID DECR 
-          | block
-          ; 
+statements : expression_stmt
+          | if_stmt 
+          | while_stmt
+          |for_stmt
+          |return_stmt
+          ;
+return_stmt : RETURN SEMIC
+            ;
+ 
+expression_stmt : ID EQ expr SEMIC
+                ;
 
 expr : expr PLUS expr
      | expr MINUS expr
