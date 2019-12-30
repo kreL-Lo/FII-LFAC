@@ -1,5 +1,65 @@
+class $variabila{
+    int a =4
+    const float b = 3,15f
+    bool c = true 
+    const char d = #g
+    string e = "mama"
+};
+
+function int @adunare(int a ,int b){
+    int suma =0
+    suma = a+b
+    return suma
+}
+
+function float @while_exemple( function int @adunare){
+    int i=0
+    while (i < 1)
+    {
+        i=i+ 5*3
+    }end_while
+}
+function string @stringfunc ( int number){
+    int i
+    return "really"
+}
+
+
 function int main(){
-  @eval(1+2*3);
-  string sup = "asdf";
-  
+    $variabila var
+    var<-x = 5
+    @eval(3+3+5)
+    int c=9
+    vector int 0vec
+    vector float 0V2 : [1,2f , 1,4f]
+    vector string 0v3 : ["abc" ,"cde", "fgh"]
+    vector char 0v4 : []
+    0v4[0]=#a
+    for int x=3 to 3
+    {
+        call @stringfunc(35+5*23) 
+        string s1
+        concat(s1 , " ok ")
+        c = length (s1)
+        if (x == 0) 
+        {
+            if (c==9)
+            {
+                for int i=1 to 10
+                {
+                    for int j=2 to c
+                    {
+                        x++
+                    }end_for     
+                }end_for
+            }end_if
+            x=x+5
+            call @suma(3,4)
+        }
+        else {
+            return 3 
+            call @while_exemple( @adunare )
+        }end_if  
+    }
+    end_for
 }
