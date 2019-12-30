@@ -1,0 +1,8 @@
+global
+Defined Variables 
+	string sup= "asdf" 
+global
+Defined Functions
+as
+
+
