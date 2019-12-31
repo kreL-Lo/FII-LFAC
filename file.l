@@ -11,6 +11,8 @@
 "vector" {return VECTOR;}
 "const" {return CONST;}
 "return" {return RETURN;}
+"false" {return FALSE;}
+"true" {return TRUE;}
 "class" {return CLASS;}
 "call" {return CALL;}
 "@eval" {return EVAL;}
@@ -20,14 +22,12 @@
 "end_while" {return ENDWHILE;}
 "end_for" {return ENDFOR;}
 "to" {return TO;}
+"concat" {return CONCAT;}
+"length" {return LENGTH;}
 "else" {return ELSE;}
 "while" {return WHILE;}
 "for" {return FOR;}
 "function" {return FUNCTION;}
-"concat" {return CONCAT;}
-"length" {return LENGTH;}
-"true" {return TRUE;}
-"false" {return FALSE;}
 "++" {return INCR;}
 "--" {return DECR;}
 "&&" {return AND;}
@@ -47,19 +47,21 @@
 "}" {return BCLS; }
 ";" {return SEMIC;}
 "+" {return PLUS;}
+"." {return DOT;}
 "-" {return MINUS;}
 "*" {return MUL;}
 "/" {return DIV;}
 "<-" {return STR_ATRIB;}
 \"[_a-zA-Z0-9 ]*\" {yylval.str=strdup(yytext);return STRING;}
 [_a-zA-Z][_a-zA-Z0-9]* {yylval.str=strdup(yytext);return ID;}
+[0-9]+,[0-9]+f {return FLOATVAL;}
 [0-9]+ {yylval.num=atoi(yytext);return NUMBER;}
 @[_a-zA-Z][_a-zA-Z0-9]* {return FUNC_ID;}
 $[_a-zA-Z][_a-zA-Z0-9]* {return CLASS_ID;}
 0[_a-zA-Z][_a-zA-Z0-9]* {return VECID;}
-[0-9]+,[0-9]+f {return FLOATVAL;}
 #[_a-zA-Z0-9] {return CHARVAL;}
 [ \t] ;
 \n {yylineno++;}
 . {return yytext[0];}
 
+ 
