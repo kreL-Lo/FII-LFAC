@@ -58,7 +58,7 @@
 [_a-zA-Z][_a-zA-Z0-9]* {yylval.str=strdup(yytext);return ID;}
 [0-9]+,[0-9]+f {return FLOATVAL;}
 [0-9]+ {yylval.num=atoi(yytext);return NUMBER;}
-@[_a-zA-Z][_a-zA-Z0-9]* {return FUNC_ID;}
+@[_a-zA-Z][_a-zA-Z0-9]* {yylval.str=strdup(yytext);return FUNC_ID;}
 $[_a-zA-Z][_a-zA-Z0-9]* {return CLASS_ID;}
 0[_a-zA-Z][_a-zA-Z0-9]* {return VECID;}
 #[_a-zA-Z0-9] {yylval.str=strdup(yytext);return CHARVAL;}
