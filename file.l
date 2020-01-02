@@ -16,6 +16,7 @@
 "class" {return CLASS;}
 "call" {return CALL;}
 "@eval" {return EVAL;}
+"@eval_str" {return EVAL_STR;}
 "main" { return MAIN;}
 "if" {return IF;}
 "end_if" {return ENDIF;}
@@ -24,6 +25,7 @@
 "to" {return TO;}
 "concat" {return CONCAT;}
 "length" {return LENGTH;}
+"eq_str" {return EQ_STR;}
 "else" {return ELSE;}
 "while" {return WHILE;}
 "for" {return FOR;}
@@ -59,7 +61,7 @@
 @[_a-zA-Z][_a-zA-Z0-9]* {return FUNC_ID;}
 $[_a-zA-Z][_a-zA-Z0-9]* {return CLASS_ID;}
 0[_a-zA-Z][_a-zA-Z0-9]* {return VECID;}
-#[_a-zA-Z0-9] {return CHARVAL;}
+#[_a-zA-Z0-9] {yylval.str=strdup(yytext);return CHARVAL;}
 [ \t] ;
 \n {yylineno++;}
 . {return yytext[0];}
