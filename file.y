@@ -15,7 +15,8 @@ int fd;
 struct function{
     char *type;
     char * name;
-    char * args;
+    char ** id;
+    char ** tip;
     int nr_args;
 };
 struct function functions[500];
@@ -537,6 +538,7 @@ int eq_str( char * id1, char *id2, int nr ){
 
 int getPositionFunction(char * name){
      for(int i =0 ;i<f;i++){
+         printf("%s\n",functions[i].name);
         if(strcmp(name,functions[i].name)==0){
             return i;
         }
@@ -544,6 +546,81 @@ int getPositionFunction(char * name){
     return -1;
 }
 int count = 0;
+struct container{
+    char **id ;
+    char **tip;
+}contain;
+
+void push_str_id(char * str){
+    contain.id=realloc(contain.id,sizeof(*contain.id)*(count+1));
+    contain.id[count]=strdup(str);
+}
+
+void push_str_tip(char * str){
+    contain.tip=realloc(contain.tip,sizeof(*contain.tip)*(count+1));
+    contain.tip[count]=strdup(str);
+    ++count;
+}
+void test_print(int k){
+    for(int i=0;i<functions[k].nr_args;i++){
+        printf("%s \t %s \n",functions[k].id[i],
+        functions[k].tip[i]);       
+    }
+}
+
+void eq_functions(int k,char * name, char * type ){
+    // bag din container in functions la pozitia k 
+    functions[k].name=strdup(name);
+    functions[k].type=strdup(type);
+    functions[k].id=malloc(sizeof(*functions[f].id)*count);
+    functions[k].tip=malloc(sizeof(*functions[f].tip)*count);
+    for(int i =0 ;i<count;i++){
+        functions[k].id[i]=strdup(contain.id[i]);
+        functions[k].tip[i]=strdup(contain.tip[i]);
+    }
+    functions[k].nr_args=count;
+
+}
+void function_declaration( char * type, char * name ){
+    int p=getPositionFunction(name);
+    if(p==-1){
+        eq_functions(f,name,type);
+        ++f;
+    }
+    else{
+        int ok=1;
+        for(int i =0;i<f;i++){
+            if(strcmp(functions[i].type,type)==0){
+                if(functions[i].nr_args==count){
+                    int check=0;
+                    for(int j=0;j<count;j++){
+                        if(strcmp(functions[i].tip[j],contain.tip[j])!=0){
+                            check=1;
+                            break;
+                        }
+                    }
+                        if(check==0){
+                            ok=0;
+                            break;
+                        }
+                }
+                else{
+                    ok=0;
+                    break;
+                }
+            }
+        }
+        if(ok==0){
+            printf("LineNo: %d : \n",yylineno);
+            printf("\t There is another functions with the same parameters\n");
+        }
+        else{
+            eq_functions(f,name,type);
+            ++f;
+        }
+    }
+        count=0;
+}
 %}
 %token EQ_STR EVAL_STR STR_ATRIB CONCAT TO LENGTH CLASS_ID VECID FLOATVAL CHARVAL FALSE TRUE DOT FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR RETURN
 %start start
@@ -557,11 +634,9 @@ int count = 0;
 {
     int num;
     char* str;
-    char *args;
 }
 %type <num> boolval expr NUMBER eval string_length string_eq condition param
-%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call
-struct functions buffer ;
+%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call FUNC_ID
 %%
 start : progr {isAccepted();}
       ;
@@ -584,13 +659,13 @@ declaratii : declaratie
            | declaratii declaratie 
            ;
 functie : FUNCTION tip FUNC_ID POPN PCLS BOPN blocks BCLS {}
-        |FUNCTION tip FUNC_ID POPN parameters PCLS BOPN blocks BCLS {printf("first\n");}
+        |FUNCTION tip FUNC_ID POPN parameters PCLS BOPN blocks BCLS {function_declaration($2,$3);}
         ;
-parameters : param COMMA parameters {printf("here%d\n",$1);}
-           | param {printf("another\n");printf("here%d\n",$1);}
+parameters : param COMMA parameters {}
+           | param {}
            ;
 
-param :tip ID {$$=count++;}
+param :tip ID {push_str_id($2);push_str_tip($1);}
       ;
 function_call : CALL FUNC_ID POPN parameters_call PCLS
               ;
@@ -602,8 +677,6 @@ param_call : tip ID {}
 boolval : FALSE {$$=0;}
         | TRUE {$$=1;}
         ;
-
-
       
 tip : INT {$$=$1;}
     | FLOAT {$$=$1;}
