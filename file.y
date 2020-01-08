@@ -16,6 +16,15 @@ int fd;
 int count_functii=0;
 
 int f = 0; int f_s=0;
+
+struct container{
+    char *id ;
+    char *tip;
+    int constant;
+    int func_type;
+    int isId;
+}contain[100];
+
 struct var{
     int value;
     char * type;
@@ -25,13 +34,12 @@ struct var{
     int changed;
     int func_type;
 };
-struct container{
-    char *id ;
-    char *tip;
-    int constant;
-    int func_type;
-    int isId;
-}contain[100];
+
+struct class{
+    struct var vars[100];
+    char *name;
+    int nr_vars;
+}classes[100];
 
 struct function{
     char *type;
@@ -130,7 +138,6 @@ void declare(char * type, char * name,int value,char * str, int constant,int ini
                 
                 if(func_type==0){
                     functions[scope].vars[k].func_type=0;    
-                    printf("%s %s \n",type,name);
                     if(strcmp(type,"int")==0){
                             if(filt.integer==1){
                                 functions[scope].vars[k].changed=1;
@@ -171,7 +178,6 @@ void declare(char * type, char * name,int value,char * str, int constant,int ini
                 }
                 else{
                     sameValue=1;
-                    printf("%s %s  \n",name,type);
                     functions[scope].vars[k].name=strdup(name);
                     functions[scope].vars[k].type = strdup(type);
                     functions[scope].vars[k].func_type=1;    
@@ -209,7 +215,7 @@ void declare(char * type, char * name,int value,char * str, int constant,int ini
     }
 }
 int getPosition(char * name,int scope){
-    for(int i =0 ;i<k;i++){
+    for(int i =0 ;i<functions[scope].nr_vars;i++){
         
         if(strcmp(name,functions[scope].vars[i].name)==0){
             return i;
@@ -546,6 +552,12 @@ void push_str(char * str,char * str1,int nr){
 
     }else{ 
         //function
+        int p =getPositionFunction(str);
+        if(p==-1){
+            accept=0;
+            return;
+        }
+        contain[count].tip= strdup(functions[p].type);
         contain[count].id=strdup(str1);
         contain[count].constant =0;
         contain[count].func_type =1;
@@ -601,13 +613,19 @@ void function_declaration( char * type, char * name ,int nr){
     }
 }
 
-void check_function(char * name){
+void check_function(char * name,int scope){
     int p=getPositionFunction(name);
     if(p==-1){
         printf("LineNo: %d : \n",yylineno);
         printf("\t There is no function in program with the name %s \n",name);
         accept = 0;
     }
+    char * type = functions[p].type;
+    functions[scope].vars[k].func_type = 1;
+    functions[scope].vars[k].type = strdup(type);
+    functions[scope].vars[k].name = strdup(name);
+    ++k;
+    functions[scope].nr_args = k; 
 }
 struct param_call{
     char *id ;
@@ -669,14 +687,17 @@ int check_function_float(int i,int j,int scope ){
 }
 
 int check_function_fuc(char * str ,int i,int j,int scope){
-    int p =getPosition(str,scope);    
+    
+    int p =1;
+    printf("%s sf\n",functions[0].type);
+    p =getPositionFunction(str);
     if(p==-1){
         printf("LineNo: %d : \n",yylineno);
         printf("\t No initialization of  %s \n",str);
         accept=0;
         return -1;
     }
-    str = contain[p].tip;
+    str = functions[p].type;
     if(strcmp(functions[i].contain[j].tip,str)==0){
         return 1;
     }
@@ -700,13 +721,15 @@ void function_call(int scope,char * name){
                     if(p_call[j].isType[0])
                     {
                         printf("1\n");
-                        if(check_function_id(p_call[i].id,i,j,scope)==-1){
+                        /*
+                        if(check_function_id(p_call[j].id,i,j,scope)==-1){
                             invalid_arg=0;
                             break;
-                        }
+                        }*/
                     }
                     if(p_call[j].isType[1]){
                         printf("2\n");
+                        
                         if(check_function_nr(i,j,scope)==-1){
                             invalid_arg=0;
                             break;
@@ -715,25 +738,27 @@ void function_call(int scope,char * name){
 
                     if(p_call[j].isType[2]){
                         printf("3\n");
+                        /*
                         if(check_function_string(i,j,scope)==-1){
                             invalid_arg=0;
                             break;
-                        }
+                        }*/
                     }
 
                     if(p_call[j].isType[3]){
                         printf("4\n");
-                        if(check_function_fuc(p_call[i].id,i,j,scope)==-1){
+                        if(check_function_fuc(p_call[j].id,i,j,scope)==-1){
                             invalid_arg=0;
                             break;
                         }
                     }
                     if(p_call[j].isType[4]){
                         printf("5\n");
+                        /*
                         if(check_function_float(i,j,scope)==-1){
                             invalid_arg=0;
                             break;
-                        }
+                        }*/
                     }
 
                 }
@@ -778,7 +803,9 @@ void sending(char * text ){
     size = strlen(buf);
     write(fd,buf,size);
 }
+int g =0;
 void table_select(){
+    int size;
     /*struct container{
     char *id ;
     char *tip;
@@ -786,13 +813,50 @@ void table_select(){
     int func_type;
     int isId;
 }contain[100];*/
+
+///printez clasele declarate
+    bzero(buf,sizeof(buf));
+    sprintf(buf,"Classes\n");
+    size = strlen(buf);
+    write(fd,buf,size);
+    for(int i =0;i<g;i++){
+        write(fd,"\t",1);
+        bzero(buf,sizeof(buf));
+        sprintf(buf,"%s \n", classes[i].name);
+        size = strlen(buf);
+        write(fd, buf,size);
+        printf("here %d\n",classes[i].nr_vars);
+        for(int j =0 ;j<classes[i].nr_vars;j++){
+            write(fd,"\t",1);
+            write(fd,"\t",1);
+            if(classes[i].vars[j].constant){
+                bzero(buf,sizeof(buf));
+                sprintf(buf,"constant ");
+                size = strlen(buf);//
+                write(fd,buf,size);
+            }
+
+            if(classes[i].vars[j].func_type){
+                bzero(buf,sizeof(buf));
+                sprintf(buf,"function ");
+                size = strlen(buf);//
+                write(fd,buf,size);   
+            }
+
+            bzero(buf,sizeof(buf));
+            sprintf(buf,"%s %s \n ",classes[i].vars[j].type,classes[i].vars[j].name);
+            size = strlen(buf);
+            write(fd,buf,size);
+        }
+
+    }
+
+    write(fd,"\n",1);
     ////printez functiile declaratte
-    int size;
     bzero(buf,sizeof(buf));
     sprintf(buf,"FUNCTIONS \n");
     size = strlen(buf);//
     write(fd,buf,size);
-    printf("%d\n",f);
     for(int i=0;i<f;i++){
         write(fd,"\t",1);
         bzero(buf,sizeof(buf));
@@ -868,6 +932,151 @@ void table_select(){
 
     ////printez variabilile din fiecare functie
 }
+
+int getPositionClass( char * name ,int scope){
+    for(int i=0;i<classes[scope].nr_vars;i++){
+        if(strcmp(classes[scope].vars[i].name,name)==0){
+            return i;
+        }
+    }
+    return -1;
+}
+
+void init_class(char * name){
+    int declare =0;
+    for(int i =0;i<g;i++){
+        if(strcmp(classes[i].name,name)==0)
+        {
+            declare=1;
+            break;
+        }
+    }
+    if(declare ==1){
+        printf("LineNo: %d : \n",yylineno);
+        printf("\tRedefinition of class %s\n",name);
+    }
+    else{
+        classes[g].name=strdup(name);
+        ++g;
+    }
+}
+void declare_class(char * type, char * name,int value,char * str, int constant,int init,struct filter filt,int scope, int func_type);
+void filter_class(int nr,char * type, char * name, int value, char * str,int init, int constant, int scope, int func_type){
+    if(accept==1){
+    struct filter filt={0,0,0,0,0};
+    if(init==1){
+        if(nr==0){
+            filt.integer = 1;
+        }else if(nr ==1){
+            filt.boolean = 1; 
+        }else if(nr==2){
+            filt.character =1;
+        }else if(nr==3){
+            filt.string =1;
+        }else if (nr ==4){
+            filt.floating=1;
+        }
+    }
+    declare_class(type,name,value,str,constant,init,filt,scope,func_type);
+
+    }    }
+
+void declare_class(char * type, char * name,int value,char * str, int constant,int init,struct filter filt,int scope, int func_type){
+    if(accept==1){
+        int declared = 0;
+        int sameValue=0;
+        int p = getPositionClass(name,scope);
+        if(p!=-1){
+            declared=1;
+        }
+        if(declared==0){
+            if(init==1){
+                
+                if(func_type==0){
+                    classes[scope].vars[count].func_type=0;    
+                    if(strcmp(type,"int")==0){
+                            if(filt.integer==1){
+                                classes[scope].vars[count].changed=1;
+                                sameValue=1;
+                                classes[scope].vars[count].value=value;
+                            }   
+                    }
+                    else if(strcmp(type,"bool")==0){
+                        if(filt.integer==1)
+                        {
+                            if(value==0||value==1){
+                                classes[scope].vars[count].value=value;
+                                classes[scope].vars[count].changed=1;
+                                sameValue=1;
+                            }
+                        }
+                    }
+                    else if(strcmp(type,"char")==0){
+                        if(filt.character==1){
+                            sameValue=1;
+                            classes[scope].vars[count].changed=1;
+                            classes[scope].vars[count].str = strdup(str);
+                        }
+                    }
+                    else if(strcmp(type,"string")==0){
+                        if(filt.string==1){
+                            sameValue=1;
+                            classes[scope].vars[count].changed=1;
+                            classes[scope].vars[count].str = strdup(str);
+                        }
+                    }
+                    else if(strcmp(type,"float")==0){
+                        if(filt.floating==1){
+                            sameValue=1;
+                            classes[scope].vars[count].changed=1;
+                        }
+                    }
+                }
+                else{
+                    sameValue=1;
+                    classes[scope].vars[count].name=strdup(name);
+                    classes[scope].vars[count].type = strdup(type);
+                    classes[scope].vars[count].func_type=1;    
+                    ++count;
+                }
+                if(sameValue){
+                    classes[scope].vars[count].name=strdup(name);
+                    classes[scope].vars[count].type = strdup(type);
+                    classes[scope].vars[count].constant = constant;
+                    classes[scope].vars[count].func_type=0;    
+                    ++count;
+                
+                }
+            }
+            else{
+                sameValue=1;
+                classes[scope].vars[count].func_type = 0;
+                classes[scope].vars[count].name=strdup(name);
+                classes[scope].vars[count].type = strdup(type);
+                ++count;
+                
+            }
+        }
+        if(declared==1){
+            accept=0;
+            printf("LineNo: %d : \n",yylineno);
+            printf("\tRedefinition of %s\n",name);
+        }
+        else if(sameValue==0){
+            accept=0;
+            printf("LineNo: %d : \n",yylineno);
+            printf("\tCan't assing  %s\n",name);
+        }
+    }
+    classes[scope].nr_vars=count;
+}
+
+//conainer cu elemente din clasa
+
+void push_class(){
+    //count care ii zero pe aici
+    
+}
 %}
 %token EQ_STR EVAL_STR STR_ATRIB CONCAT TO LENGTH CLASS_ID VECID FLOATVAL CHARVAL FALSE TRUE DOT FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR RETURN
 %start start
@@ -883,12 +1092,15 @@ void table_select(){
     char* str;
 }
 %type <num> boolval expr NUMBER eval string_length string_eq condition 
-%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call FUNC_ID 
+%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call FUNC_ID CLASS_ID
 %%
 start : progr {isAccepted();
 if(accept){table_select();}}
       ;
-progr :   main
+progr : functii  main
+      | classes functii main
+      | classes main
+      | main 
       ;
 functii : functii functie
         | functie
@@ -897,12 +1109,16 @@ functii : functii functie
 classes : classes class
         | class
         ;
-class : CLASS CLASS_ID BOPN declaratii BCLS 
-      | CLASS CLASS_ID BOPN BCLS
+class : CLASS CLASS_ID BOPN declaratii_class BCLS  {init_class($2);;count=0;}
+      | CLASS CLASS_ID BOPN BCLS {init_class($2);count =0;}
       ;
 declaratii : declaratie 
            | declaratii declaratie 
            ;
+
+declaratii_class : declaratie_class 
+| declaratii_class declaratie_class
+;
 functie : FUNCTION tip FUNC_ID POPN PCLS BOPN blocks BCLS {function_declaration($2,$3,1);++count_functii;k=0;}
         |   FUNCTION tip FUNC_ID POPN parameters PCLS BOPN blocks BCLS {function_declaration($2,$3,0);
                                                                         functions[count_functii].nr_vars=k;
@@ -916,9 +1132,10 @@ parameters : param COMMA parameters {}
 
 param :tip ID {filter_declaration(-1,$1,$2,0,"",0,0,count_functii,0);push_str($1,$2,0);}
       | CONST tip ID {filter_declaration(-1,$2,$3,0,"",0,1,count_functii,0); push_str($2,$3,1);}
-      | FUNC_ID {check_function($1);push_str($1,"",3);}
+      | FUNC_ID {check_function($1,count_functii);push_str($1,"",3);}
       ;
 function_call : CALL FUNC_ID POPN parameters_call PCLS {function_call(count_functii,$2);count =0;}
+              | CALL FUNC_ID POPN PCLS {function_call(count_functii,$2);count=0;}
               ;
 parameters_call : param_call COMMA parameters_call {}
                 | param_call 
@@ -946,7 +1163,7 @@ bgn_main :FUNCTION INT MAIN POPN args_main PCLS
          ;
 args_main : parameters
           ;
-main : bgn_main BOPN blocks BCLS {function_declaration("funciton","main",1);count =0;++count_functii;k=0;}
+main : bgn_main BOPN blocks BCLS {function_declaration("function","main",1);count =0;++count_functii;k=0;}
      | bgn_main BOPN BCLS {function_declaration("function","main",0);count =0;++count_functii;k=0;}
      ;
 
@@ -976,7 +1193,7 @@ if_stmt :  IF POPN condition PCLS BOPN blocks BCLS ENDIF
       | IF POPN condition PCLS BOPN BCLS ELSE BOPN BCLS ENDIF
       ;
 
-for_stmt : FOR statements TO op BOPN blocks BCLS 
+for_stmt : FOR statements TO op BOPN blocks BCLS ENDFOR
 ;
 
 while_stmt : WHILE POPN condition PCLS BOPN blocks BCLS ENDWHILE
@@ -1018,7 +1235,6 @@ declaratie :tip ID  {filter_declaration(-1,$1,$2,0,"",0,0,count_functii,0);}
            |tip ID EQ expr  {filter_declaration(0,$1,$2,$4,"",1,0,count_functii,0);}
            | tip ID EQ CHARVAL {filter_declaration(2,$1,$2,0,$4,1,0,count_functii,0);}
            | tip ID EQ STRING  {filter_declaration(3,$1,$2,0,$4,1,0,count_functii,0);}
-           |tip ID EQ FUNC_ID {filter_declaration(3,$1,$2,0,$4,1,0,count_functii,1);}
            | tip ID EQ FLOATVAL {filter_declaration(4,$1,$2,0,"",1,0,count_functii,0);}
            | CONST tip ID  {filter_declaration(-1,$2,$3,0,"",0,1,count,0);}
            | CONST tip ID EQ expr {filter_declaration(0,$2,$3,$5,"",1,1,count_functii,0);}
@@ -1030,6 +1246,22 @@ declaratie :tip ID  {filter_declaration(-1,$1,$2,0,"",0,0,count_functii,0);}
            | VECTOR tip VECID ':' '['list ']' {}
            | VECTOR tip VECID ':' '['']' {}
            ;
+
+declaratie_class :tip ID  {filter_class(-1,$1,$2,0,"",0,0,g,0);}
+|tip ID EQ expr  {filter_class(0,$1,$2,$4,"",1,0,g,0);}
+| tip ID EQ CHARVAL {filter_class(2,$1,$2,0,$4,1,0,g,0);}
+| tip ID EQ STRING  {filter_class(3,$1,$2,0,$4,1,0,g,0);}
+| tip ID EQ FLOATVAL {filter_class(4,$1,$2,0,"",1,0,g,0);}
+| CONST tip ID  {filter_class(-1,$2,$3,0,"",0,1,count,0);}
+| CONST tip ID EQ expr {filter_class(0,$2,$3,$5,"",1,1,g,0);}
+| CONST tip ID EQ CHARVAL {filter_class(2,$2,$3,0,$5,1,1,g,0);}
+| CONST tip ID EQ STRING {filter_class(3,$2,$3,0,$5,1,1,g,0);}
+| CONST tip ID EQ FLOATVAL {filter_class(4,$2,$3,0,"",1,1,g,0);}
+| CLASS_ID ID {}
+| VECTOR tip VECID {}
+| VECTOR tip VECID ':' '['list ']' {}
+| VECTOR tip VECID ':' '['']' {}
+;
 assign : ID EQ expr {assignment($1,$3,"",0,count_functii);}
        | ID EQ STRING {assignment($1,0,$3,1,count_functii);}
        | ID EQ FLOATVAL {assignment($1,0,"",2,count_functii);}
