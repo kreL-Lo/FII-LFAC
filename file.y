@@ -11,15 +11,9 @@ extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
 
+
 int fd;
-struct function{
-    char *type;
-    char * name;
-    char ** id;
-    char ** tip;
-    int nr_args;
-};
-struct function functions[500];
+int count_functii=0;
 
 int f = 0; int f_s=0;
 struct var{
@@ -29,66 +23,28 @@ struct var{
     char * str;
     int constant;
     int changed;
+    int func_type;
 };
-struct var vars[500];
+struct container{
+    char *id ;
+    char *tip;
+    int constant;
+    int func_type;
+}contain[100];
+
+struct function{
+    char *type;
+    char * name;
+    //container unde retin parametri
+    struct container contain[100];
+    int nr_args;
+    int nr_vars;
+    struct var vars[500];
+};
+
+struct function functions[500];
 int k =0 ; int k_s=0;
 int accept =1;
-void table_printf(char *scope){
-    
-    char container[100];
-    bzero(container,sizeof(container));
-    sprintf(container,"Defined Variables ");
-    write(fd,scope,strlen(scope));
-    write(fd,"\n",1);
-    write(fd,container,strlen(container));
-    write(fd,"\n",1);
-    for(int i = k_s;i<k;i++){
-        write(fd,"\t",1);
-        if(vars[i].constant ==1){
-            write(fd,"constant ",9);
-        }
-
-        write(fd,vars[i].type,strlen(vars[i].type));
-        bzero(container,sizeof(container));
-        write(fd," ",1);
-        write(fd,container,strlen(container));
-        write(fd,vars[i].name,strlen(vars[i].name));
-        if(vars[i].changed==1){
-    
-            if(strcmp(vars[i].type,"int")==0){
-                sprintf(container,"= %d ",vars[i].value);
-            }
-            else if (strcmp(vars[i].type,"float")==0){
-                sprintf(container,"= %d ",vars[i].value);
-            }
-            else if(strcmp(vars[i].type,"bool")==0){
-                sprintf(container,"= %d ",vars[i].value);
-            }
-            else if(strcmp(vars[i].type,"string")==0){
-
-                sprintf(container,"= %s ",vars[i].str);
-            }
-            else if(strcmp(vars[i].type,"char")==0){
-                sprintf(container,"= %s ",vars[i].str);
-            }
-            write(fd,container,strlen(container));
-        }
-        write(fd,"\n",1);
-    }
-    k_s=k;
-    bzero(container,sizeof(container));
-    sprintf(container,"Defined Functions\n");
-    write(fd,scope,strlen(scope));
-    write(fd,"\n",1);
-    write(fd,container,strlen(container));
-    write(fd,"as\n",3);
-    for(int i = f_s;i<f;i++){
-        write(fd,vars[i].name,strlen(vars[i].name));
-        write(fd,"\n",1);
-    }
-    write(fd,"\n\n",2);
-    f_s = f;
-}
 void isAccepted(){
     if(accept==1){
         printf("Code is accepted\n");
@@ -118,13 +74,13 @@ void eval (int notEmpty, int value){
         printf("Nothing in expresion at line %d \n",yylineno);
     }
 }
-
-int isDeclared(char * name,int declare){
+//count_functii reprezinta in ce functie suntem la momentul curent
+int isDeclared(char * name,int declare,int scope){
     if(k==0 && declare==1){
         return -1;
     }
     for(int i=0;i<k;i++){
-        if(strcmp(name,vars[i].name)==0){
+        if(strcmp(name,functions[scope].vars[k].name)==0){
             return k;
         }
     }
@@ -138,8 +94,8 @@ struct filter {
    int floating;
 };
 
-void declare(char * type, char * name,int value,char * str, int constant,int init,struct filter filt);
-void filter_declaration(int nr,char * type, char * name, int value, char * str,int init, int constant){
+void declare(char * type, char * name,int value,char * str, int constant,int init,struct filter filt,int scope,int func_type);
+void filter_declaration(int nr,char * type, char * name, int value, char * str,int init, int constant, int scope, int func_type){
     if(accept==1){
     struct filter filt={0,0,0,0,0};
     if(init==1){
@@ -155,64 +111,75 @@ void filter_declaration(int nr,char * type, char * name, int value, char * str,i
             filt.floating=1;
         }
     }
-    declare(type,name,value,str,constant,init,filt);
+    declare(type,name,value,str,constant,init,filt,scope,func_type);
     }
 }
-void declare(char * type, char * name,int value,char * str, int constant,int init,struct filter filt){
+void declare(char * type, char * name,int value,char * str, int constant,int init,struct filter filt,int scope, int func_type){
     if(accept==1){
         int declared = 0;
         int sameValue;
-        if(isDeclared(name,1)!=-1){
+        if(isDeclared(name,1,scope)!=-1){
             declared = 1;
         }
         if(declared==0){
             sameValue=0;
             if(init==1){
-            if(strcmp(type,"int")==0){
-                    if(filt.integer==1){
-                        sameValue=1;
-                        vars[k].changed=1;
-                        vars[k].value=value;
-                    }   
-            }
-            else if(strcmp(type,"bool")==0){
-                if(filt.integer==1)
-                {
-                    if(value==0||value==1){
-                        vars[k].value=value;
-                        vars[k].changed=1;
-                        sameValue=1;
+
+
+                if(func_type==0){
+                    functions[scope].vars[k].func_type=0;    
+                    if(strcmp(type,"int")==0){
+                            if(filt.integer==1){
+                                sameValue=1;
+                                functions[scope].vars[k].changed=1;
+                                functions[scope].vars[k].value=value;
+                            }   
+                    }
+                    else if(strcmp(type,"bool")==0){
+                        if(filt.integer==1)
+                        {
+                            if(value==0||value==1){
+                                functions[scope].vars[k].value=value;
+                                functions[scope].vars[k].changed=1;
+                                sameValue=1;
+                            }
+                        }
+                    }
+                    else if(strcmp(type,"char")==0){
+                        if(filt.character==1){
+                            sameValue=1;
+                            functions[scope].vars[k].changed=1;
+                            functions[scope].vars[k].str = strdup(str);
+                        }
+                    }
+                    else if(strcmp(type,"string")==0){
+                        if(filt.string==1){
+                            sameValue=1;
+                            functions[scope].vars[k].changed=1;
+                            functions[scope].vars[k].str = strdup(str);
+                        }
+                    }
+                    else if(strcmp(type,"float")==0){
+                        if(filt.floating==1){
+                            sameValue=1;
+                            functions[scope].vars[k].changed=1;
+                        }
                     }
                 }
-            }
-            else if(strcmp(type,"char")==0){
-                if(filt.character==1){
+                else{
                     sameValue=1;
-                    vars[k].changed=1;
-                    vars[k].str = strdup(str);
                 }
-            }
-            else if(strcmp(type,"string")==0){
-                if(filt.string==1){
-                    sameValue=1;
-                    vars[k].changed=1;
-                    vars[k].str = strdup(str);
+                if(sameValue){
+                    functions[scope].vars[k].name=strdup(name);
+                    functions[scope].vars[k].type = strdup(type);
+                    functions[scope].vars[k].constant = constant;
+                    ++k;
                 }
-            }
-            else if(strcmp(type,"float")==0){
-                if(filt.floating==1){
-                    sameValue=1;
-                    vars[k].changed=1;
-                }
-            }
             }
             else{
                 sameValue=1;
-            }
-            if(sameValue){
-                vars[k].name=strdup(name);
-                vars[k].type = strdup(type);
-                vars[k].constant = constant;
+                functions[scope].vars[k].func_type = 1;
+                functions[scope].vars[k].name=strdup(name);
                 ++k;
             }
         }
@@ -229,56 +196,58 @@ void declare(char * type, char * name,int value,char * str, int constant,int ini
         }
     }
 }
-
-int getPosition(char * name){
+int getPosition(char * name,int scope){
     for(int i =0 ;i<k;i++){
-        if(strcmp(name,vars[i].name)==0){
+        if(strcmp(name,functions[scope].vars[i].name)==0){
             return i;
         }
     }    
     return -1;
 }
-int getValue(char * name){
-    int position =getPosition(name);
+int getValue(char * name,int scope){
+    if(accept==1){
+    int position =getPosition(name,scope);
     if(position==-1){
         accept = 0;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No declaration of %s\n",name);
         return -1;
     }
-    else if(vars[position].changed==0)
+    else if(functions[scope].vars[position].changed==0)
         {accept =0;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No initialiazation of %s\n",name);
         return -1;
     }
-    else if(strcmp(vars[position].type,"int")!=0){
+    else if(strcmp(functions[scope].vars[position].type,"int")!=0){
         accept =0 ;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No matching type\n" );
         return -1;
     }
     else{
-        return vars[position].value;
+        return functions[scope].vars[position].value;
     }
+    }else
+        return -1;
 }
 
-int decr_incr( char * name ,int nr){
-    int position = getPosition(name);
+int decr_incr( char * name ,int nr,int scope){
+    int position = getPosition(name,scope);
     if(position==-1){
         accept = 0;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No declaration of %s\n",name);
         return -1;
     }else{
-        if(strcmp(vars[position].type,"int")==0){
+        if(strcmp(functions[scope].vars[position].type,"int")==0){
             if(nr==0){
-                vars[position].value +=1;
+                functions[scope].vars[position].value +=1;
             }
             else{
-                vars[position].value -=1;
+                functions[scope].vars[position].value -=1;
             }
-            return vars[position].value;
+            return functions[scope].vars[position].value;
         }
         else{
             accept =0 ;
@@ -289,7 +258,7 @@ int decr_incr( char * name ,int nr){
     }
     return -1;
 }   
-void assignment(char * name,  int value , char * str,int nr){
+void assignment(char * name,  int value , char * str,int nr,int scope){
     if(accept==1){
     struct filter filt={0,0,0,0,0};
     if(nr==0){
@@ -303,7 +272,7 @@ void assignment(char * name,  int value , char * str,int nr){
         }else if (nr ==4){
             filt.floating=1;
         }
-    int position=getPosition(name);
+    int position=getPosition(name,scope);
     if(position==-1){
         accept =0;
         printf("LineNo: %d : \n",yylineno);
@@ -311,43 +280,43 @@ void assignment(char * name,  int value , char * str,int nr){
     }
     else{
         int someValue = 0;
-        if(strcmp(vars[position].type,"int")==0){
+        if(strcmp(functions[scope].vars[position].type,"int")==0){
             if(nr==0){
                 someValue=1;
-                vars[position].value=value;
-                vars[position].changed=1;
+                functions[scope].vars[position].value=value;
+                functions[scope].vars[position].changed=1;
             }
         }   
-        else if (strcmp(vars[position].type,"string")==0){
+        else if (strcmp(functions[scope].vars[position].type,"string")==0){
             if(nr==1){
                 someValue=1;
-                vars[position].str= strdup(str);
-                vars[position].changed=1;
+                functions[scope].vars[position].str= strdup(str);
+                functions[scope].vars[position].changed=1;
             }
         }
-        else if (strcmp(vars[position].type,"string")==0){
+        else if (strcmp(functions[scope].vars[position].type,"string")==0){
             if(nr==2){
                 someValue=1;
-                vars[position].str= strdup(str);
-                vars[position].changed=1;
+                functions[scope].vars[position].str= strdup(str);
+                functions[scope].vars[position].changed=1;
             }
-        }else if (strcmp(vars[position].type,"float")==0){
+        }else if (strcmp(functions[scope].vars[position].type,"float")==0){
             if(nr==3){
                 someValue=1;
-                vars[position].changed=1;
+                functions[scope].vars[position].changed=1;
             }
         }
-        else if (strcmp(vars[position].type,"char")==0){
+        else if (strcmp(functions[scope].vars[position].type,"char")==0){
             if(nr==4){
                 someValue=1;
-                vars[position].str= strdup(str);
+                functions[scope].vars[position].str= strdup(str);
             }
         }
-        else if (strcmp(vars[position].type,"bool")==0){
+        else if (strcmp(functions[scope].vars[position].type,"bool")==0){
             if(nr==0){
                 if(value==0||value==1){
                     someValue=1;
-                    vars[position].str= strdup(str);
+                    functions[scope].vars[position].str= strdup(str);
                 }
             }
         }
@@ -361,28 +330,28 @@ void assignment(char * name,  int value , char * str,int nr){
 }
 
 
-char * getStringval(char * name){
-    int position =getPosition(name);
+char * getStringval(char * name,int scope){
+    int position =getPosition(name,scope);
     if(position==-1){
         accept = 0;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No declaration of %s\n",name);
         return "";
     }
-    else if(vars[position].changed==0)
+    else if(functions[scope].vars[position].changed==0)
         {accept =0;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No initialiazation of %s\n",name);
         return "";
     }
-    else if(strcmp(vars[position].type,"string")!=0){
+    else if(strcmp(functions[scope].vars[position].type,"string")!=0){
         accept =0 ;
         printf("LineNo: %d : \n",yylineno);
         printf("\t-No matching type\n" );
         return "";
     }
     else{
-        return vars[position].str;
+        return functions[scope].vars[position].str;
     }
 }
 
@@ -398,14 +367,14 @@ int str_cut(char *str, int begin, int len)
 }
 
 
-void concat_id_id(char * id1,char *id2){
+void concat_id_id(char * id1,char *id2,int scope){
     if(accept==1){
-        int p1 = getPosition(id1);
-        int p2 = getPosition(id2);
+        int p1 = getPosition(id1,scope);
+        int p2 = getPosition(id2,scope);
         if(p1!=-1&&p2!=-1){
-            if(strcmp(vars[p1].type,vars[p2].type)==0&&strcmp(vars[p1].type,"string")==0){
-                vars[p1].changed=1;
-                strcat(vars[p1].str,vars[p2].str);
+            if(strcmp(functions[scope].vars[p1].type,functions[scope].vars[p2].type)==0&&strcmp(functions[scope].vars[p1].type,"string")==0){
+                functions[scope].vars[p1].changed=1;
+                strcat(functions[scope].vars[p1].str,functions[scope].vars[p2].str);
             }else{
                 accept =0 ;
                 printf("LineNo: %d : \n",yylineno);
@@ -419,13 +388,13 @@ void concat_id_id(char * id1,char *id2){
     }
 }
 
-void concat_id_str(char * id1,char *str){
+void concat_id_str(char * id1,char *str,int scope){
     if(accept==1){
-        int p1 = getPosition(id1);
+        int p1 = getPosition(id1,scope);
         if(p1!=-1){
-            if(strcmp(vars[p1].type,"string")==0){
-                vars[p1].changed=1;
-                strcat(vars[p1].str,str);
+            if(strcmp(functions[scope].vars[p1].type,"string")==0){
+                functions[scope].vars[p1].changed=1;
+                strcat(functions[scope].vars[p1].str,str);
             }else{
                 accept =0 ;
                 printf("LineNo: %d : \n",yylineno);
@@ -439,14 +408,14 @@ void concat_id_str(char * id1,char *str){
     }
 }
 
-int str_length(char * id1,int nr){
+int str_length(char * id1,int nr,int scope){
     if(accept==1){
         if(nr==0){
-        int p1 = getPosition(id1);
+        int p1 = getPosition(id1,scope);
             if(p1!=-1){
 
-                if(strcmp(vars[p1].type,"string")==0){
-                    return strlen(vars[p1].str);
+                if(strcmp(functions[scope].vars[p1].type,"string")==0){
+                    return strlen(functions[scope].vars[p1].str);
                 }else
                 {
                     accept=0;
@@ -460,7 +429,7 @@ int str_length(char * id1,int nr){
                 accept = 0;
                     printf("LineNo: %d : \n",yylineno);
                     printf("One of the values hasn't been declared\n");
-                    return -1;
+                     return -1;
             }
         }
         else {
@@ -469,14 +438,14 @@ int str_length(char * id1,int nr){
     }
 }
 
-int eq_str( char * id1, char *id2, int nr ){
+int eq_str( char * id1, char *id2, int nr ,int scope){
     if(accept==1){
         if(nr==0){ // id id
-            int p1 = getPosition(id1);
-            int p2 = getPosition(id2);
+            int p1 = getPosition(id1,scope);
+            int p2 = getPosition(id2,scope);
             if(p1!=-1&&p2!=-1){
-                if(strcmp(vars[p1].type,vars[p2].type)==0&&strcmp(vars[p1].type,"string")==0){
-                    return strcmp(vars[p1].str,vars[p2].str);
+                if(strcmp(functions[scope].vars[p1].type,functions[scope].vars[p2].type)==0&&strcmp(functions[scope].vars[p1].type,"string")==0){
+                    return strcmp(functions[scope].vars[p1].str,functions[scope].vars[p2].str);
                 }
                 else{
                     accept = 0;
@@ -494,10 +463,10 @@ int eq_str( char * id1, char *id2, int nr ){
         }else if(nr==1){
             return (strcmp(id1,id2));//str str
         }else if(nr==2){ //id str
-            int p1 = getPosition(id1);
+            int p1 = getPosition(id1,scope);
             if(p1!=-1){
-                if(strcmp(vars[p1].type,"string")==0){
-                    return strcmp(vars[p1].str,id2);
+                if(strcmp(functions[scope].vars[p1].type,"string")==0){
+                    return strcmp(functions[scope].vars[p1].str,id2);
                 }
                 else{
                     accept =0 ;
@@ -513,10 +482,10 @@ int eq_str( char * id1, char *id2, int nr ){
                 return -1;
             }
         }else if(nr==3){ //str id
-            int p2 = getPosition(id2);
+            int p2 = getPosition(id2,scope);
             if(p2!=-1){
-                if(strcmp(vars[p2].type,"string")==0){
-                    return strcmp(vars[p2].str,id1);
+                if(strcmp(functions[scope].vars[p2].type,"string")==0){
+                    return strcmp(functions[scope].vars[p2].str,id1);
                 }
                 else{
                     accept =0 ;
@@ -538,7 +507,6 @@ int eq_str( char * id1, char *id2, int nr ){
 
 int getPositionFunction(char * name){
      for(int i =0 ;i<f;i++){
-         printf("%s\n",functions[i].name);
         if(strcmp(name,functions[i].name)==0){
             return i;
         }
@@ -546,42 +514,50 @@ int getPositionFunction(char * name){
     return -1;
 }
 int count = 0;
-struct container{
-    char **id ;
-    char **tip;
-}contain;
 
-void push_str_id(char * str){
-    contain.id=realloc(contain.id,sizeof(*contain.id)*(count+1));
-    contain.id[count]=strdup(str);
-}
 
-void push_str_tip(char * str){
-    contain.tip=realloc(contain.tip,sizeof(*contain.tip)*(count+1));
-    contain.tip[count]=strdup(str);
+void push_str(char * str,char * str1,int nr){
+    if(nr==0){
+        //basic variable
+        contain[count].id=strdup(str);
+        contain[count].tip=strdup(str1);
+        contain[count].constant =0;
+        contain[count].func_type =0;
+        }
+        else if(nr ==1){
+        //constant variable
+        contain[count].id=strdup(str);
+        contain[count].tip=strdup(str1);
+        contain[count].constant =1;
+        contain[count].func_type =0;
+
+    }else{ 
+        //function
+        contain[count].id=strdup(str);
+        contain[count].constant =0;
+        contain[count].func_type =1;
+    }
     ++count;
+
 }
+
 void test_print(int k){
     for(int i=0;i<functions[k].nr_args;i++){
         printf("%s \t %s \n",functions[k].id[i],
-        functions[k].tip[i]);       
     }
 }
 
 void eq_functions(int k,char * name, char * type ){
     // bag din container in functions la pozitia k 
-    functions[k].name=strdup(name);
-    functions[k].type=strdup(type);
-    functions[k].id=malloc(sizeof(*functions[f].id)*count);
-    functions[k].tip=malloc(sizeof(*functions[f].tip)*count);
-    for(int i =0 ;i<count;i++){
-        functions[k].id[i]=strdup(contain.id[i]);
-        functions[k].tip[i]=strdup(contain.tip[i]);
+    for(int i =0;i<count;i++){
+        functions[k].contain[i]=contain[i];
     }
     functions[k].nr_args=count;
 
+
 }
 void function_declaration( char * type, char * name ){
+    if(accept==1){
     int p=getPositionFunction(name);
     if(p==-1){
         eq_functions(f,name,type);
@@ -592,35 +568,26 @@ void function_declaration( char * type, char * name ){
         for(int i =0;i<f;i++){
             if(strcmp(functions[i].type,type)==0){
                 if(functions[i].nr_args==count){
-                    int check=0;
-                    for(int j=0;j<count;j++){
-                        if(strcmp(functions[i].tip[j],contain.tip[j])!=0){
-                            check=1;
-                            break;
-                        }
-                    }
-                        if(check==0){
-                            ok=0;
-                            break;
-                        }
-                }
-                else{
                     ok=0;
                     break;
-                }
+                }   
             }
         }
         if(ok==0){
             printf("LineNo: %d : \n",yylineno);
-            printf("\t There is another functions with the same parameters\n");
+            printf("\t There is another function with the same number of parameters\n");
+            accept=0;
         }
         else{
             eq_functions(f,name,type);
             ++f;
         }
     }
+
         count=0;
+    }
 }
+
 %}
 %token EQ_STR EVAL_STR STR_ATRIB CONCAT TO LENGTH CLASS_ID VECID FLOATVAL CHARVAL FALSE TRUE DOT FLOAT BOOL CHAR INT STRINGTYPE CLASS STRING ID BOPN BCLS SEMIC EQ NUMBER CONST POPN PCLS COMMA MAIN IF ELSE WHILE FOR LO GT LOEQ GTEQ EQEQ NOTEQ AND OR NOT PLUS MINUS DIV MUL ENDIF ENDWHILE ENDFOR DECR INCR FUNCTION FUNC_ID EVAL CALL VECTOR RETURN
 %start start
@@ -635,15 +602,12 @@ void function_declaration( char * type, char * name ){
     int num;
     char* str;
 }
-%type <num> boolval expr NUMBER eval string_length string_eq condition param
-%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call FUNC_ID
+%type <num> boolval expr NUMBER eval string_length string_eq condition 
+%type <str> ID FLOAT INT BOOL CHAR STRING tip STRINGTYPE CHARVAL  eval_str arg_str param_call FUNC_ID 
 %%
 start : progr {isAccepted();}
       ;
-progr :  classes functii main
-        | classes main 
-        | functii main
-        | main
+progr :  functii
       ;
 functii : functii functie
         | functie
@@ -658,21 +622,29 @@ class : CLASS CLASS_ID BOPN declaratii BCLS
 declaratii : declaratie 
            | declaratii declaratie 
            ;
-functie : FUNCTION tip FUNC_ID POPN PCLS BOPN blocks BCLS {}
-        |FUNCTION tip FUNC_ID POPN parameters PCLS BOPN blocks BCLS {function_declaration($2,$3);}
+functie : FUNCTION tip FUNC_ID POPN PCLS BOPN blocks BCLS {++count_functii;k=0;}
+        |   FUNCTION tip FUNC_ID POPN parameters PCLS BOPN blocks BCLS {function_declaration($2,$3);
+                                                                        functions[count_functii].nr_vars=k;
+                                                                        ++count_functii;
+                                                                        k=0;
+                                                                            } 
         ;
 parameters : param COMMA parameters {}
            | param {}
            ;
 
-param :tip ID {push_str_id($2);push_str_tip($1);}
+param :tip ID {filter_declaration(-1,$1,$2,0,"",0,0,count_functii,0);push_str($1,$2,0);}
+      | CONST tip ID {filter_declaration(-1,$2,$3,0,"",0,1,count_functii,0); push_str($2,$3,1);}
+      | FUNC_ID {push_str($1,"",3);}
       ;
-function_call : CALL FUNC_ID POPN parameters_call PCLS
+function_call : CALL FUNC_ID POPN parameters_call PCLS {count =0;}
               ;
 parameters_call : param_call COMMA parameters_call {}
-                | param_call
+                | param_call 
                 ;
-param_call : tip ID {}
+param_call : ID {}
+           | NUMBER {}
+           | FUNC_ID {}
            ;
 boolval : FALSE {$$=0;}
         | TRUE {$$=1;}
@@ -687,9 +659,9 @@ tip : INT {$$=$1;}
 
 bgn_main :FUNCTION INT MAIN POPN args_main PCLS
          ;
-args_main : 
+args_main : INT INT INT
           ;
-main : bgn_main BOPN blocks BCLS {table_printf("global");}
+main : bgn_main BOPN blocks BCLS {}
      | bgn_main BOPN BCLS
      ;
 
@@ -697,7 +669,7 @@ blocks : block
        | blocks block
        ;
 block : statements
-      | eval
+      | eval 
       | string_functions
       | function_call
       | eval_str
@@ -709,7 +681,7 @@ eval_str : EVAL_STR POPN arg_str PCLS {eval_string(1,$3);}
          | EVAL_STR POPN PCLS {eval_string(1,"");}
          ;
 arg_str  : STRING {$$=strdup($1);}
-         | ID {$$=strdup(getStringval($1));}
+         | ID {$$=strdup(getStringval($1,count_functii));}
          ;
 
 if_stmt :  IF POPN condition PCLS BOPN blocks BCLS ENDIF
@@ -719,8 +691,8 @@ if_stmt :  IF POPN condition PCLS BOPN blocks BCLS ENDIF
       | IF POPN condition PCLS BOPN BCLS ELSE BOPN BCLS ENDIF
       ;
 
-for_stmt : FOR statements TO op BOPN blocks BCLS ENDFOR
-         ;
+for_stmt : FOR statements TO op BOPN blocks BCLS 
+;
 
 while_stmt : WHILE POPN condition PCLS BOPN blocks BCLS ENDWHILE
            ;
@@ -743,7 +715,7 @@ expr : expr PLUS expr {$$ = $1 + $3;}
      | expr MUL expr {$$ = $1*$3;}
      | expr DIV expr {$$= $1/$3;}
      | POPN expr PCLS {$$=$2;}
-     | ID {$$=getValue($1);}
+     | ID {$$=getValue($1,count_functii);}
      | NUMBER {$$=$1;}
      | boolval {$$=$1;}
      | string_length {$$=$1;}
@@ -757,29 +729,30 @@ expr : expr PLUS expr {$$ = $1 + $3;}
      | expr LOEQ expr {$$=$1<=$3;}
      | expr EQEQ expr {$$=$1==$3;}
      ;
-declaratie :tip ID  {filter_declaration(-1,$1,$2,0,"",0,0);}
-           |tip ID EQ expr  {filter_declaration(0,$1,$2,$4,"",1,0);}
-           | tip ID EQ CHARVAL {filter_declaration(2,$1,$2,0,$4,1,0);}
-           | tip ID EQ STRING  {filter_declaration(3,$1,$2,0,$4,1,0);}
-           | tip ID EQ FLOATVAL {filter_declaration(4,$1,$2,0,"",1,0);}
-           | CONST tip ID  {filter_declaration(-1,$2,$3,0,"",0,1);}
-           | CONST tip ID EQ expr {filter_declaration(0,$2,$3,$5,"",1,1);}
-           | CONST tip ID EQ CHARVAL {filter_declaration(2,$2,$3,0,$5,1,1);}
-           | CONST tip ID EQ STRING {filter_declaration(3,$2,$3,0,$5,1,1);}
-           | CONST tip ID EQ FLOATVAL {filter_declaration(4,$2,$3,0,"",1,1);}
+declaratie :tip ID  {filter_declaration(-1,$1,$2,0,"",0,0,count_functii,0);}
+           |tip ID EQ expr  {filter_declaration(0,$1,$2,$4,"",1,count_functii,0);}
+           | tip ID EQ CHARVAL {filter_declaration(2,$1,$2,0,$4,1,0,count_functii,0);}
+           | tip ID EQ STRING  {filter_declaration(3,$1,$2,0,$4,1,0,count_functii,0);}
+           |tip ID EQ FUNC_ID {filter_declaration(3,$1,$2,0,$4,1,0,count_functii,1);}
+           | tip ID EQ FLOATVAL {filter_declaration(4,$1,$2,0,"",1,0,count_functii,0);}
+           | CONST tip ID  {filter_declaration(-1,$2,$3,0,"",0,1,count,0);}
+           | CONST tip ID EQ expr {filter_declaration(0,$2,$3,$5,"",1,1,count_functii,0);}
+           | CONST tip ID EQ CHARVAL {filter_declaration(2,$2,$3,0,$5,1,1,count_functii,0);}
+           | CONST tip ID EQ STRING {filter_declaration(3,$2,$3,0,$5,1,1,count_functii,0);}
+           | CONST tip ID EQ FLOATVAL {filter_declaration(4,$2,$3,0,"",1,1,count_functii,0);}
            | CLASS_ID ID {}
            | VECTOR tip VECID {}
            | VECTOR tip VECID ':' '['list ']' {}
            | VECTOR tip VECID ':' '['']' {}
            ;
-assign : ID EQ expr {assignment($1,$3,"",0);}
-       | ID EQ STRING {assignment($1,0,$3,1);}
-       | ID EQ FLOATVAL {assignment($1,0,"",2);}
-       | ID EQ CHARVAL {assignment($1,0,$3,3);}
-       | ID INCR {decr_incr($1,0);}
-       | ID DECR {decr_incr($1,1); }
-       |INCR ID {decr_incr($2,0);}
-       |DECR ID {decr_incr($2,1);}
+assign : ID EQ expr {assignment($1,$3,"",0,count_functii);}
+       | ID EQ STRING {assignment($1,0,$3,1,count_functii);}
+       | ID EQ FLOATVAL {assignment($1,0,"",2,count_functii);}
+       | ID EQ CHARVAL {assignment($1,0,$3,3,count_functii);}
+       | ID INCR {decr_incr($1,0,count_functii);}
+       | ID DECR {decr_incr($1,1,count_functii); }
+       |INCR ID {decr_incr($2,0,count_functii);}
+       |DECR ID {decr_incr($2,1,count_functii);}
        |ID EQ string_functions 
        |VECID '['NUMBER ']' EQ op
        |ID STR_ATRIB ID EQ op
@@ -787,16 +760,16 @@ assign : ID EQ expr {assignment($1,$3,"",0);}
 list : list COMMA op
      | op
      ;
-string_functions : CONCAT POPN ID COMMA ID PCLS {concat_id_id($3,$5);}
-                 | CONCAT POPN ID COMMA STRING PCLS {concat_id_str($3,$5);}
+string_functions : CONCAT POPN ID COMMA ID PCLS {concat_id_id($3,$5,count_functii);}
+                 | CONCAT POPN ID COMMA STRING PCLS {concat_id_str($3,$5,count_functii);}
                  ;
-string_length : LENGTH POPN ID PCLS {$$=str_length($3,0);}
-                 | LENGTH POPN STRING PCLS {$$=str_length($3,1);}
+string_length : LENGTH POPN ID PCLS {$$=str_length($3,0,count_functii);}
+                 | LENGTH POPN STRING PCLS {$$=str_length($3,1,count_functii);}
                  ;
-string_eq : EQ_STR POPN ID COMMA ID PCLS {$$=eq_str($3,$5,0);} 
-          | EQ_STR POPN STRING COMMA STRING PCLS {$$=eq_str($3,$5,1);} 
-          | EQ_STR POPN ID COMMA STRING PCLS {$$=eq_str($3,$5,2);} 
-          | EQ_STR POPN STRING COMMA ID PCLS  {$$=eq_str($3,$5,3);} 
+string_eq : EQ_STR POPN ID COMMA ID PCLS {$$=eq_str($3,$5,0,count_functii);} 
+          | EQ_STR POPN STRING COMMA STRING PCLS {$$=eq_str($3,$5,1,count_functii);} 
+          | EQ_STR POPN ID COMMA STRING PCLS {$$=eq_str($3,$5,2,count_functii);} 
+          | EQ_STR POPN STRING COMMA ID PCLS  {$$=eq_str($3,$5,3,count_functii);} 
           ;
 
 
